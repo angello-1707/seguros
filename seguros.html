@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Seguros — CRUD</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 240px; background: #1e293b; color: #fff; display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; }
+    .sidebar-brand { padding: 24px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 40px; height: 40px; background: #2563eb; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .brand-name { font-size: 15px; font-weight: 700; }
+    .brand-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #94a3b8; transition: background .15s, color .15s; margin-bottom: 4px; border: none; background: none; width: 100%; text-align: left; }
+    .nav-item:hover { background: #334155; color: #fff; }
+    .nav-item.active { background: #2563eb; color: #fff; }
+    .nav-icon { font-size: 18px; flex-shrink: 0; }
+    .sidebar-footer { padding: 16px 12px; border-top: 1px solid #334155; }
+    .user-info { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+    .user-avatar { width: 36px; height: 36px; background: #475569; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+    .user-name { font-size: 13px; font-weight: 600; }
+    .user-email { font-size: 11px; color: #94a3b8; }
+    .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .page { display: none; flex-direction: column; flex: 1; }
+    .page.active { display: flex; }
+    .page-header { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .page-title { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .page-subtitle { font-size: 13px; color: #64748b; margin-top: 2px; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .search-wrap { position: relative; }
+    .search-wrap input { padding: 9px 14px 9px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 280px; outline: none; transition: border-color .15s; }
+    .search-wrap input:focus { border-color: #2563eb; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: #94a3b8; pointer-events: none; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background .15s, box-shadow .15s; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,.35); }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-green:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,.35); }
+    .page-content { padding: 28px 32px; flex: 1; }
+    .table-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    th { padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+    td { padding: 14px 20px; font-size: 13px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    .td-id { color: #2563eb; font-weight: 600; }
+    .td-actions { display: flex; gap: 6px; justify-content: center; }
+    .icon-btn { width: 30px; height: 30px; border-radius: 7px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: background .15s; }
+    .icon-btn-view { background: #eff6ff; color: #2563eb; }
+    .icon-btn-view:hover { background: #dbeafe; }
+    .icon-btn-edit { background: #f1f5f9; color: #475569; }
+    .icon-btn-edit:hover { background: #e2e8f0; }
+    .icon-btn-delete { background: #fff1f2; color: #dc2626; }
+    .icon-btn-delete:hover { background: #fee2e2; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-green  { background: #dcfce7; color: #16a34a; }
+    .badge-yellow { background: #fef9c3; color: #ca8a04; }
+    .badge-red    { background: #fee2e2; color: #dc2626; }
+    .badge-blue   { background: #dbeafe; color: #2563eb; }
+    .badge-purple { background: #ede9fe; color: #7c3aed; }
+    .result-count { margin-top: 12px; font-size: 12px; color: #94a3b8; }
+    .empty-state { padding: 60px 20px; text-align: center; color: #94a3b8; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    /* DASHBOARD */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px; }
+    .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,.06); display: flex; align-items: flex-start; justify-content: space-between; }
+    .stat-value { font-size: 30px; font-weight: 700; color: #0f172a; margin: 4px 0; }
+    .stat-label { font-size: 13px; color: #64748b; }
+    .stat-change { font-size: 12px; font-weight: 600; }
+    .stat-change.pos { color: #16a34a; }
+    .stat-change.neg { color: #dc2626; }
+    .stat-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .si-blue { background: #dbeafe; } .si-green { background: #dcfce7; } .si-purple { background: #ede9fe; }
+    .si-red { background: #fee2e2; } .si-yellow { background: #fef9c3; } .si-indigo { background: #e0e7ff; }
+    .activity-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .activity-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .activity-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot { width: 8px; height: 8px; background: #2563eb; border-radius: 50%; flex-shrink: 0; }
+    .activity-info { margin-left: 12px; flex: 1; }
+    .activity-action { font-weight: 600; color: #0f172a; }
+    .activity-action span { color: #2563eb; }
+    .activity-name { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+    .activity-time { font-size: 11px; color: #cbd5e1; }
+    /* CATÁLOGO */
+    .cat-tabs { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 32px; display: flex; gap: 4px; flex-shrink: 0; }
+    .cat-tab { display: flex; align-items: center; gap: 8px; padding: 16px 20px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: none; color: #64748b; border-bottom: 3px solid transparent; transition: color .15s, border-color .15s; }
+    .cat-tab:hover { color: #1e293b; }
+    .cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .cat-tab-icon { font-size: 18px; }
+    .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .plan-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s; }
+    .plan-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .plan-header { padding: 24px; color: #fff; }
+    .plan-header-vida { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .plan-header-auto { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .plan-header-gm   { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .plan-header-hogar{ background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+    .plan-icon-wrap { width: 48px; height: 48px; background: rgba(255,255,255,.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px; }
+    .plan-name { font-size: 18px; font-weight: 700; }
+    .plan-desc { font-size: 12px; opacity: .85; margin-top: 2px; }
+    .plan-price { margin-top: 16px; }
+    .plan-price-value { font-size: 32px; font-weight: 800; }
+    .plan-price-period { font-size: 13px; opacity: .8; }
+    .plan-suma { font-size: 12px; opacity: .8; margin-top: 4px; }
+    .plan-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+    .plan-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .plan-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .plan-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #475569; }
+    .plan-check { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .plan-footer { padding: 16px 20px 20px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 8px; }
+    .plan-deducible { font-size: 12px; color: #94a3b8; text-align: center; }
+    /* MODALES */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.3); width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 22px 28px 18px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; border-radius: 14px 14px 0 0; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1; }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-close { width: 32px; height: 32px; border-radius: 8px; border: none; background: none; cursor: pointer; font-size: 20px; color: #94a3b8; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: #e2e8f0; color: #475569; }
+    .modal-body { padding: 24px 28px; }
+    .modal-footer { padding: 16px 28px 22px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field.full { grid-column: 1 / -1; }
+    label { font-size: 13px; font-weight: 600; color: #374151; }
+    input, select, textarea { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; color: #1e293b; outline: none; transition: border-color .15s, box-shadow .15s; background: #fff; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    textarea { resize: vertical; min-height: 70px; }
+    /* VIEW MODAL */
+    .view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+    .view-field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; display: block; }
+    .view-field .view-value { font-size: 14px; color: #1e293b; margin-top: 2px; font-weight: 500; }
+    .view-field.full { grid-column: 1 / -1; }
+    .view-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 18px; margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .view-banner-text { font-size: 13px; color: #1e40af; font-weight: 500; }
+    /* DELETE MODAL */
+    .delete-modal { max-width: 420px; position: relative; }
+    .delete-icon-wrap { width: 64px; height: 64px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
+    .delete-modal .modal-body { text-align: center; padding: 28px 28px 8px; }
+    .delete-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .delete-text { font-size: 13px; color: #64748b; }
+    .delete-name { font-weight: 700; color: #0f172a; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🛡️</div>
+      <div><div class="brand-name">SecureAgency</div><div class="brand-sub">Sistema de Seguros</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="navigate('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</button>
+      <button class="nav-item" onclick="navigate('catalogos',this)"><span class="nav-icon">📚</span> Catálogo</button>
+      <button class="nav-item" onclick="navigate('clientes',this)"><span class="nav-icon">👥</span> Clientes</button>
+      <button class="nav-item" onclick="navigate('agentes',this)"><span class="nav-icon">👤</span> Agentes</button>
+      <button class="nav-item" onclick="navigate('polizas',this)"><span class="nav-icon">📄</span> Pólizas</button>
+      <button class="nav-item" onclick="navigate('siniestros',this)"><span class="nav-icon">⚠️</span> Siniestros</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">AD</div>
+        <div><div class="user-name">Admin User</div><div class="user-email">admin@seguros.com</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ════ DASHBOARD ════ -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header"><div><div class="page-title">Dashboard</div><div class="page-subtitle">Vista general del sistema de seguros</div></div></div>
+      <div class="page-content">
+        <div class="stats-grid">
+          <div class="stat-card"><div><div class="stat-label">Total Clientes</div><div class="stat-value" id="stat-clientes">0</div><div class="stat-change pos">+12.5% vs mes anterior</div></div><div class="stat-icon si-blue">👥</div></div>
+          <div class="stat-card"><div><div class="stat-label">Agentes Activos</div><div class="stat-value" id="stat-agentes">0</div><div class="stat-change pos">+3.2% vs mes anterior</div></div><div class="stat-icon si-green">👤</div></div>
+          <div class="stat-card"><div><div class="stat-label">Pólizas Vigentes</div><div class="stat-value" id="stat-polizas">0</div><div class="stat-change pos">+8.1% vs mes anterior</div></div><div class="stat-icon si-purple">📄</div></div>
+          <div class="stat-card"><div><div class="stat-label">Siniestros Activos</div><div class="stat-value" id="stat-siniestros">0</div><div class="stat-change neg">-15.3% vs mes anterior</div></div><div class="stat-icon si-red">⚠️</div></div>
+          <div class="stat-card"><div><div class="stat-label">Primas Mensuales</div><div class="stat-value">$2.4M</div><div class="stat-change pos">+22.5% vs mes anterior</div></div><div class="stat-icon si-yellow">💰</div></div>
+          <div class="stat-card"><div><div class="stat-label">Crecimiento</div><div class="stat-value">18.2%</div><div class="stat-change pos">+5.4% vs mes anterior</div></div><div class="stat-icon si-indigo">📈</div></div>
+        </div>
+        <div class="activity-card">
+          <div class="activity-title">Actividad Reciente</div>
+          <div class="activity-item"><div class="activity-dot"></div><div class="activity-info"><div class="activity-action"><span>Cliente:</span> Nuevo registro</div><div class="activity-name">María García López</div></div><div class="activity-time">Hace 5 min</div></div>
+          <div class="activity-item"><div class="activity-dot"></div><div class="activity-info"><div class="activity-action"><span>Póliza:</span> Renovación</div><div class="activity-name">POL-2024-1234</div></div><div class="activity-time">Hace 15 min</div></div>
+          <div class="activity-item"><div class="activity-dot"></div><div class="activity-info"><div class="activity-action"><span>Siniestro:</span> Reporte nuevo</div><div class="activity-name">SIN-2024-0089</div></div><div class="activity-time">Hace 1 hora</div></div>
+          <div class="activity-item"><div class="activity-dot"></div><div class="activity-info"><div class="activity-action"><span>Agente:</span> Actualización</div><div class="activity-name">Carlos Martínez</div></div><div class="activity-time">Hace 2 horas</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ CATÁLOGO ════ -->
+    <div id="page-catalogos" class="page">
+      <div class="page-header"><div><div class="page-title">Catálogo de Seguros</div><div class="page-subtitle">Planes disponibles con coberturas y precios</div></div></div>
+      <div class="cat-tabs">
+        <button class="cat-tab active" onclick="switchTab('vida',this)"><span class="cat-tab-icon">❤️</span> Vida</button>
+        <button class="cat-tab" onclick="switchTab('auto',this)"><span class="cat-tab-icon">🚗</span> Auto</button>
+        <button class="cat-tab" onclick="switchTab('gm',this)"><span class="cat-tab-icon">🏥</span> Gastos Médicos</button>
+        <button class="cat-tab" onclick="switchTab('hogar',this)"><span class="cat-tab-icon">🏠</span> Hogar</button>
+      </div>
+      <div class="page-content">
+        <!-- VIDA -->
+        <div id="cat-vida" class="cat-grid">
+          <div class="plan-card">
+            <div class="plan-header plan-header-vida">
+              <div class="plan-icon-wrap">❤️</div>
+              <div class="plan-name">Vida Básico</div>
+              <div class="plan-desc">Protección esencial para tu familia</div>
+              <div class="plan-price"><span class="plan-price-value">$850</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $500,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Muerte natural</li><li><span class="plan-check">✅</span>Muerte accidental</li><li><span class="plan-check">✅</span>Invalidez total y permanente</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Pago de suma asegurada</li><li><span class="plan-check">🔹</span>Adelanto por enfermedad terminal</li><li><span class="plan-check">🔹</span>Sin periodo de espera</li></ul></div>
+            </div>
+            <div class="plan-footer"><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Vida','$850')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-vida">
+              <div class="plan-icon-wrap">❤️</div>
+              <div class="plan-name">Vida Plus</div>
+              <div class="plan-desc">Cobertura ampliada con beneficios extra</div>
+              <div class="plan-price"><span class="plan-price-value">$1,450</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $1,000,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Muerte natural</li><li><span class="plan-check">✅</span>Muerte accidental (doble indemnización)</li><li><span class="plan-check">✅</span>Invalidez total y permanente</li><li><span class="plan-check">✅</span>Enfermedades graves</li><li><span class="plan-check">✅</span>Gastos funerarios</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Pago de suma asegurada</li><li><span class="plan-check">🔹</span>Asistencia médica telefónica 24/7</li><li><span class="plan-check">🔹</span>Segunda opinión médica</li></ul></div>
+            </div>
+            <div class="plan-footer"><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Vida','$1,450')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-vida">
+              <div class="plan-icon-wrap">❤️</div>
+              <div class="plan-name">Vida Premium</div>
+              <div class="plan-desc">Máxima protección para tu familia</div>
+              <div class="plan-price"><span class="plan-price-value">$2,850</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $2,500,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Muerte natural</li><li><span class="plan-check">✅</span>Muerte accidental (triple indemnización)</li><li><span class="plan-check">✅</span>Enfermedades graves (25 padecimientos)</li><li><span class="plan-check">✅</span>Gastos funerarios</li><li><span class="plan-check">✅</span>Renta diaria por hospitalización</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Segunda opinión médica internacional</li><li><span class="plan-check">🔹</span>Red de hospitales de primer nivel</li><li><span class="plan-check">🔹</span>Asistencia médica 24/7</li></ul></div>
+            </div>
+            <div class="plan-footer"><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Vida','$2,850')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+        </div>
+        <!-- AUTO -->
+        <div id="cat-auto" class="cat-grid" style="display:none">
+          <div class="plan-card">
+            <div class="plan-header plan-header-auto">
+              <div class="plan-icon-wrap">🚗</div>
+              <div class="plan-name">Auto Amplia</div>
+              <div class="plan-desc">Cobertura completa para tu vehículo</div>
+              <div class="plan-price"><span class="plan-price-value">$1,200</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: Valor comercial</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Daños materiales</li><li><span class="plan-check">✅</span>Robo total</li><li><span class="plan-check">✅</span>Responsabilidad civil</li><li><span class="plan-check">✅</span>Gastos médicos ocupantes</li><li><span class="plan-check">✅</span>Asistencia vial</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Auto sustituto por robo/daños</li><li><span class="plan-check">🔹</span>Asistencia vial 24/7</li><li><span class="plan-check">🔹</span>Grúa sin límite de km</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: 5%</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Auto','$1,200')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-auto">
+              <div class="plan-icon-wrap">🚗</div>
+              <div class="plan-name">Auto Limitada</div>
+              <div class="plan-desc">Protección contra robo y responsabilidad</div>
+              <div class="plan-price"><span class="plan-price-value">$650</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: Valor comercial</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Robo total</li><li><span class="plan-check">✅</span>Responsabilidad civil</li><li><span class="plan-check">✅</span>Gastos médicos ocupantes</li><li><span class="plan-check">✅</span>Asistencia vial básica</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Asistencia vial 24/7</li><li><span class="plan-check">🔹</span>Grúa hasta 50 km</li><li><span class="plan-check">🔹</span>Defensa legal</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: 10%</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Auto','$650')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-auto">
+              <div class="plan-icon-wrap">🚗</div>
+              <div class="plan-name">Auto Premium</div>
+              <div class="plan-desc">Máxima cobertura con beneficios exclusivos</div>
+              <div class="plan-price"><span class="plan-price-value">$2,100</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: Valor factura</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Daños materiales (valor factura)</li><li><span class="plan-check">✅</span>Robo total</li><li><span class="plan-check">✅</span>Responsabilidad civil ampliada</li><li><span class="plan-check">✅</span>Equipo especial y accesorios</li><li><span class="plan-check">✅</span>Extensión territorial USA/Canadá</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Auto sustituto premium</li><li><span class="plan-check">🔹</span>Talleres de lujo</li><li><span class="plan-check">🔹</span>Chofer sustituto</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: 3%</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Auto','$2,100')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+        </div>
+        <!-- GASTOS MÉDICOS -->
+        <div id="cat-gm" class="cat-grid" style="display:none">
+          <div class="plan-card">
+            <div class="plan-header plan-header-gm">
+              <div class="plan-icon-wrap">🏥</div>
+              <div class="plan-name">GMM Básico</div>
+              <div class="plan-desc">Protección médica esencial</div>
+              <div class="plan-price"><span class="plan-price-value">$1,800</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $3,000,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Hospitalización</li><li><span class="plan-check">✅</span>Cirugías</li><li><span class="plan-check">✅</span>Medicamentos</li><li><span class="plan-check">✅</span>Honorarios médicos</li><li><span class="plan-check">✅</span>Estudios de laboratorio</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Red de hospitales nacional</li><li><span class="plan-check">🔹</span>Urgencias médicas 24/7</li><li><span class="plan-check">🔹</span>Maternidad (después de 10 meses)</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: $15,000</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Gastos Médicos','$1,800')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-gm">
+              <div class="plan-icon-wrap">🏥</div>
+              <div class="plan-name">GMM Intermedio</div>
+              <div class="plan-desc">Cobertura ampliada con beneficios adicionales</div>
+              <div class="plan-price"><span class="plan-price-value">$3,200</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $10,000,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Hospitalización</li><li><span class="plan-check">✅</span>Estudios de laboratorio y gabinete</li><li><span class="plan-check">✅</span>Tratamientos especializados</li><li><span class="plan-check">✅</span>Terapias de rehabilitación</li><li><span class="plan-check">✅</span>Enfermedades crónicas</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Red de hospitales nacional e internacional</li><li><span class="plan-check">🔹</span>Segunda opinión médica</li><li><span class="plan-check">🔹</span>Maternidad (después de 10 meses)</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: $10,000</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Gastos Médicos','$3,200')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-gm">
+              <div class="plan-icon-wrap">🏥</div>
+              <div class="plan-name">GMM Premium</div>
+              <div class="plan-desc">Máxima protección médica sin límites</div>
+              <div class="plan-price"><span class="plan-price-value">$5,800</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: Ilimitada</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Hospitalización sin límite</li><li><span class="plan-check">✅</span>Trasplantes</li><li><span class="plan-check">✅</span>Cáncer y enfermedades graves</li><li><span class="plan-check">✅</span>Enfermedades preexistentes</li><li><span class="plan-check">✅</span>Rehabilitación completa</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Red mundial de hospitales</li><li><span class="plan-check">🔹</span>Maternidad sin periodo de espera</li><li><span class="plan-check">🔹</span>Traslado médico aéreo</li><li><span class="plan-check">🔹</span>Habitación privada garantizada</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: $5,000</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Gastos Médicos','$5,800')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+        </div>
+        <!-- HOGAR -->
+        <div id="cat-hogar" class="cat-grid" style="display:none">
+          <div class="plan-card">
+            <div class="plan-header plan-header-hogar">
+              <div class="plan-icon-wrap">🏠</div>
+              <div class="plan-name">Hogar Básico</div>
+              <div class="plan-desc">Protección fundamental para tu casa</div>
+              <div class="plan-price"><span class="plan-price-value">$450</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $2,000,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Incendio</li><li><span class="plan-check">✅</span>Robo de contenidos</li><li><span class="plan-check">✅</span>Daños por agua</li><li><span class="plan-check">✅</span>Responsabilidad civil</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Reparación de daños</li><li><span class="plan-check">🔹</span>Reposición de contenidos</li><li><span class="plan-check">🔹</span>Hospedaje temporal</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: 2%</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Hogar','$450')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-hogar">
+              <div class="plan-icon-wrap">🏠</div>
+              <div class="plan-name">Hogar Plus</div>
+              <div class="plan-desc">Cobertura ampliada con protección adicional</div>
+              <div class="plan-price"><span class="plan-price-value">$850</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $5,000,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Incendio y explosión</li><li><span class="plan-check">✅</span>Robo de contenidos y joyas</li><li><span class="plan-check">✅</span>Fenómenos naturales</li><li><span class="plan-check">✅</span>Rotura de cristales</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Hospedaje temporal hasta 6 meses</li><li><span class="plan-check">🔹</span>Asistencia en el hogar 24/7</li><li><span class="plan-check">🔹</span>Cerrajería y plomería</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: 1.5%</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Hogar','$850')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-header plan-header-hogar">
+              <div class="plan-icon-wrap">🏠</div>
+              <div class="plan-name">Hogar Premium</div>
+              <div class="plan-desc">Máxima protección para tu patrimonio</div>
+              <div class="plan-price"><span class="plan-price-value">$1,650</span><span class="plan-price-period">/mes</span></div>
+              <div class="plan-suma">Suma asegurada: $10,000,000</div>
+            </div>
+            <div class="plan-body">
+              <div><div class="plan-section-title">🛡️ Coberturas</div><ul class="plan-list"><li><span class="plan-check">✅</span>Terremoto y huracán</li><li><span class="plan-check">✅</span>Daños eléctricos</li><li><span class="plan-check">✅</span>Jardinería y áreas exteriores</li><li><span class="plan-check">✅</span>Responsabilidad civil ampliada</li></ul></div>
+              <div><div class="plan-section-title">⭐ Beneficios</div><ul class="plan-list"><li><span class="plan-check">🔹</span>Hospedaje temporal sin límite</li><li><span class="plan-check">🔹</span>Mudanza por daños mayores</li><li><span class="plan-check">🔹</span>Vigilancia temporal</li></ul></div>
+            </div>
+            <div class="plan-footer"><div class="plan-deducible">Deducible: 1%</div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="cotizarPlan('Hogar','$1,650')">📋 Cotizar / Asignar Póliza</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ CLIENTES ════ -->
+    <div id="page-clientes" class="page">
+      <div class="page-header"><div><div class="page-title">Gestión de Clientes</div><div class="page-subtitle">Administra los clientes de la agencia</div></div><div class="header-actions"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Buscar por nombre o RFC..." oninput="renderClientes(this.value)" /></div><button class="btn btn-primary" onclick="openClienteForm()">➕ Nuevo Cliente</button></div></div>
+      <div class="page-content"><div class="table-card"><table><thead><tr><th>ID</th><th>Nombre Completo</th><th>RFC</th><th>Teléfono</th><th>Email</th><th style="text-align:center">Acciones</th></tr></thead><tbody id="tb-clientes"></tbody></table><div id="empty-clientes" class="empty-state" style="display:none"><div class="empty-icon">👥</div><div>No hay clientes registrados</div></div></div><div id="count-clientes" class="result-count"></div></div>
+    </div>
+
+    <!-- ════ AGENTES ════ -->
+    <div id="page-agentes" class="page">
+      <div class="page-header"><div><div class="page-title">Gestión de Agentes</div><div class="page-subtitle">Administra los agentes de seguros</div></div><div class="header-actions"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Buscar por nombre o código..." oninput="renderAgentes(this.value)" /></div><button class="btn btn-primary" onclick="openAgenteForm()">➕ Nuevo Agente</button></div></div>
+      <div class="page-content"><div class="table-card"><table><thead><tr><th>Código</th><th>Nombre</th><th>Zona</th><th>Teléfono</th><th>Comisión</th><th>Clientes</th><th style="text-align:center">Acciones</th></tr></thead><tbody id="tb-agentes"></tbody></table><div id="empty-agentes" class="empty-state" style="display:none"><div class="empty-icon">👤</div><div>No hay agentes registrados</div></div></div><div id="count-agentes" class="result-count"></div></div>
+    </div>
+
+    <!-- ════ PÓLIZAS ════ -->
+    <div id="page-polizas" class="page">
+      <div class="page-header"><div><div class="page-title">Gestión de Pólizas</div><div class="page-subtitle">Administra las pólizas de seguros</div></div><div class="header-actions"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Buscar por número o cliente..." oninput="renderPolizas(this.value)" /></div><button class="btn btn-primary" onclick="openPolizaForm()">➕ Nueva Póliza</button></div></div>
+      <div class="page-content"><div class="table-card"><table><thead><tr><th>Número</th><th>Cliente</th><th>Tipo</th><th>Inicio</th><th>Fin</th><th>Prima</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody id="tb-polizas"></tbody></table><div id="empty-polizas" class="empty-state" style="display:none"><div class="empty-icon">📄</div><div>No hay pólizas registradas</div></div></div><div id="count-polizas" class="result-count"></div></div>
+    </div>
+
+    <!-- ════ SINIESTROS ════ -->
+    <div id="page-siniestros" class="page">
+      <div class="page-header"><div><div class="page-title">Gestión de Siniestros</div><div class="page-subtitle">Administra los reportes de siniestros</div></div><div class="header-actions"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Buscar por número, cliente o póliza..." oninput="renderSiniestros(this.value)" /></div><button class="btn btn-primary" onclick="openSiniestroForm()">➕ Nuevo Siniestro</button></div></div>
+      <div class="page-content"><div class="table-card"><table><thead><tr><th>Número</th><th>Póliza</th><th>Cliente</th><th>Tipo</th><th>Fecha</th><th>Monto</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody id="tb-siniestros"></tbody></table><div id="empty-siniestros" class="empty-state" style="display:none"><div class="empty-icon">⚠️</div><div>No hay siniestros registrados</div></div></div><div id="count-siniestros" class="result-count"></div></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══════ MODAL CLIENTE ══════ -->
+<div id="modal-cliente" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="cliente-modal-title">Nuevo Cliente</div><button class="modal-close" onclick="closeModal('modal-cliente')">✕</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveCliente(event)">
+        <input type="hidden" id="c-id" />
+        <div class="form-grid">
+          <div class="form-field full"><label>Nombre Completo *</label><input id="c-nombre" placeholder="Ej. María García López" required /></div>
+          <div class="form-field"><label>RFC *</label><input id="c-rfc" placeholder="Ej. GALM850315HDF" required /></div>
+          <div class="form-field"><label>Teléfono *</label><input id="c-telefono" type="tel" placeholder="555-234-5678" required /></div>
+          <div class="form-field full"><label>Email *</label><input id="c-email" type="email" placeholder="cliente@email.com" required /></div>
+          <div class="form-field full"><label>Dirección</label><textarea id="c-direccion" placeholder="Av. Reforma 123, Col. Centro, CDMX"></textarea></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:20px;border-top:1px solid #e2e8f0;margin-top:20px">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-cliente')">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="cliente-submit-btn">Guardar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL VER CLIENTE ══════ -->
+<div id="modal-ver-cliente" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Detalle del Cliente</div><button class="modal-close" onclick="closeModal('modal-ver-cliente')">✕</button></div>
+    <div class="modal-body">
+      <div class="view-grid" id="ver-cliente-content"></div>
+      <div class="view-banner">
+        <span class="view-banner-text">📄 ¿Deseas asignar una nueva póliza a este cliente?</span>
+        <button class="btn btn-green" id="btn-nueva-poliza-cliente" onclick="">➕ Asignar Póliza</button>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ver-cliente')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- ══════ MODAL VER PÓLIZA ══════ -->
+<div id="modal-ver-poliza" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Detalle de la Póliza</div><button class="modal-close" onclick="closeModal('modal-ver-poliza')">✕</button></div>
+    <div class="modal-body">
+      <div class="view-grid" id="ver-poliza-content"></div>
+      <div class="view-banner">
+        <span class="view-banner-text">➕ ¿Asignar una póliza adicional a este cliente?</span>
+        <button class="btn btn-green" id="btn-nueva-poliza-desde-vista" onclick="">Nueva Póliza</button>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ver-poliza')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- ══════ MODAL AGENTE ══════ -->
+<div id="modal-agente" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="agente-modal-title">Nuevo Agente</div><button class="modal-close" onclick="closeModal('modal-agente')">✕</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveAgente(event)">
+        <input type="hidden" id="a-id" />
+        <div class="form-grid">
+          <div class="form-field"><label>Nombre Completo *</label><input id="a-nombre" placeholder="Roberto Sánchez" required /></div>
+          <div class="form-field"><label>Código *</label><input id="a-codigo" placeholder="AG-001" required /></div>
+          <div class="form-field"><label>Teléfono *</label><input id="a-telefono" type="tel" placeholder="555-111-2222" required /></div>
+          <div class="form-field"><label>Email *</label><input id="a-email" type="email" placeholder="agente@seguros.com" required /></div>
+          <div class="form-field"><label>Zona *</label><input id="a-zona" placeholder="Norte CDMX" required /></div>
+          <div class="form-field"><label>Comisión *</label><input id="a-comision" placeholder="15%" required /></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:20px;border-top:1px solid #e2e8f0;margin-top:20px">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-agente')">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="agente-submit-btn">Guardar Agente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL PÓLIZA ══════ -->
+<div id="modal-poliza" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="poliza-modal-title">Nueva Póliza</div><button class="modal-close" onclick="closeModal('modal-poliza')">✕</button></div>
+    <div class="modal-body">
+      <form onsubmit="savePoliza(event)">
+        <input type="hidden" id="p-id" />
+        <div class="form-grid">
+          <div class="form-field"><label>Número de Póliza *</label><input id="p-numero" placeholder="POL-2024-1001" required /></div>
+          <div class="form-field"><label>Cliente *</label><input id="p-cliente" placeholder="María García López" required /></div>
+          <div class="form-field"><label>Tipo de Seguro *</label><select id="p-tipo" required><option value="">Seleccionar...</option><option>Vida</option><option>Auto</option><option>Gastos Médicos</option><option>Hogar</option></select></div>
+          <div class="form-field"><label>Prima Mensual *</label><input id="p-prima" placeholder="$2,500" required /></div>
+          <div class="form-field"><label>Vigencia Inicio *</label><input id="p-inicio" type="date" required /></div>
+          <div class="form-field"><label>Vigencia Fin *</label><input id="p-fin" type="date" required /></div>
+          <div class="form-field full"><label>Estado *</label><select id="p-estado"><option>Vigente</option><option>Por Vencer</option><option>Vencida</option></select></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:20px;border-top:1px solid #e2e8f0;margin-top:20px">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-poliza')">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="poliza-submit-btn">Guardar Póliza</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL SINIESTRO ══════ -->
+<div id="modal-siniestro" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="siniestro-modal-title">Nuevo Siniestro</div><button class="modal-close" onclick="closeModal('modal-siniestro')">✕</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveSiniestro(event)">
+        <input type="hidden" id="s-id" />
+        <div class="form-grid">
+          <div class="form-field"><label>Número *</label><input id="s-numero" placeholder="SIN-2024-0001" required /></div>
+          <div class="form-field"><label>Póliza *</label><input id="s-poliza" placeholder="POL-2024-1001" required /></div>
+          <div class="form-field"><label>Cliente *</label><input id="s-cliente" placeholder="María García López" required /></div>
+          <div class="form-field"><label>Fecha de Reporte *</label><input id="s-fecha" type="date" required /></div>
+          <div class="form-field"><label>Tipo de Siniestro *</label><select id="s-tipo" required><option value="">Seleccionar...</option><option>Accidente Vehicular</option><option>Robo</option><option>Daños por Incendio</option><option>Daños por Agua</option><option>Gastos Médicos</option><option>Responsabilidad Civil</option><option>Otro</option></select></div>
+          <div class="form-field"><label>Monto Reclamado *</label><input id="s-monto" placeholder="$45,000" required /></div>
+          <div class="form-field full"><label>Estado *</label><select id="s-estado"><option>Pendiente</option><option>En Proceso</option><option>Aprobado</option><option>Rechazado</option></select></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:20px;border-top:1px solid #e2e8f0;margin-top:20px">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-siniestro')">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="siniestro-submit-btn">Guardar Siniestro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL COTIZAR (desde catálogo) ══════ -->
+<div id="modal-cotizar" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="cotizar-title">Asignar Póliza</div><button class="modal-close" onclick="closeModal('modal-cotizar')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px">Selecciona el cliente para asignar este plan:</p>
+      <div class="form-field" style="margin-bottom:16px">
+        <label>Buscar Cliente</label>
+        <input id="cotizar-search" type="text" placeholder="Escribe el nombre del cliente..." oninput="filterCotizarClientes(this.value)" />
+      </div>
+      <div id="cotizar-lista" style="max-height:220px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-cotizar')">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- ══════ MODAL ELIMINAR ══════ -->
+<div id="modal-delete" class="modal-overlay">
+  <div class="modal delete-modal">
+    <button class="modal-close" style="position:absolute;top:14px;right:14px" onclick="closeModal('modal-delete')">✕</button>
+    <div class="modal-body">
+      <div class="delete-icon-wrap">⚠️</div>
+      <div class="delete-title">¿Eliminar Registro?</div>
+      <p class="delete-text" style="margin-top:8px">Estás a punto de eliminar: <span class="delete-name" id="delete-name-display"></span>.</p>
+      <p class="delete-text" style="margin-top:6px">Esta acción no se puede deshacer.</p>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;padding-bottom:24px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete')" style="min-width:120px">Cancelar</button>
+      <button class="btn btn-danger" id="delete-confirm-btn" style="min-width:120px">Sí, Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── localStorage helpers ── */
+function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+/* ── datos iniciales ── */
+let clientes = load('seg_clientes',[
+  {id:1,nombre:'María García López',rfc:'GALM850315HDF',telefono:'555-234-5678',email:'maria.garcia@email.com',direccion:'Av. Reforma 123, Col. Centro, CDMX'},
+  {id:2,nombre:'Carlos Rodríguez Martínez',rfc:'ROMC901022XYZ',telefono:'555-876-5432',email:'carlos.rodriguez@email.com',direccion:'Calle Insurgentes 456, Col. Roma, CDMX'},
+  {id:3,nombre:'Ana Patricia Fernández',rfc:'FEPA880520ABC',telefono:'555-345-6789',email:'ana.fernandez@email.com',direccion:'Blvd. Cervantes 789, GDL'},
+]);
+let agentes = load('seg_agentes',[
+  {id:1,nombre:'Roberto Sánchez Pérez',codigo:'AG-001',telefono:'555-111-2222',email:'roberto@seguros.com',zona:'Norte CDMX',comision:'15%',clientes:45},
+  {id:2,nombre:'Laura Martínez Gómez',codigo:'AG-002',telefono:'555-333-4444',email:'laura@seguros.com',zona:'Sur CDMX',comision:'18%',clientes:62},
+  {id:3,nombre:'Jorge Luis Ramírez',codigo:'AG-003',telefono:'555-555-6666',email:'jorge@seguros.com',zona:'Guadalajara',comision:'20%',clientes:38},
+]);
+let polizas = load('seg_polizas',[
+  {id:1,numero:'POL-2024-1001',cliente:'María García López',tipo:'Vida',inicio:'2024-01-15',fin:'2025-01-15',prima:'$2,500',estado:'Vigente'},
+  {id:2,numero:'POL-2024-1002',cliente:'Carlos Rodríguez Martínez',tipo:'Auto',inicio:'2024-03-10',fin:'2025-03-10',prima:'$1,800',estado:'Vigente'},
+  {id:3,numero:'POL-2024-1003',cliente:'Ana Patricia Fernández',tipo:'Hogar',inicio:'2023-06-20',fin:'2024-06-20',prima:'$1,200',estado:'Por Vencer'},
+]);
+let siniestros = load('seg_siniestros',[
+  {id:1,numero:'SIN-2024-0001',poliza:'POL-2024-1001',cliente:'María García López',fecha:'2024-02-15',tipo:'Accidente Vehicular',monto:'$45,000',estado:'En Proceso'},
+  {id:2,numero:'SIN-2024-0002',poliza:'POL-2024-1002',cliente:'Carlos Rodríguez Martínez',fecha:'2024-02-20',tipo:'Robo',monto:'$28,500',estado:'Pendiente'},
+  {id:3,numero:'SIN-2024-0003',poliza:'POL-2024-1003',cliente:'Ana Patricia Fernández',fecha:'2024-01-10',tipo:'Daños por Incendio',monto:'$120,000',estado:'Aprobado'},
+]);
+
+function nextId(arr){return arr.length?Math.max(...arr.map(x=>x.id))+1:1;}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+
+function badge(e){
+  const m={'Vigente':'badge-green','Por Vencer':'badge-yellow','Vencida':'badge-red','Pendiente':'badge-yellow','En Proceso':'badge-blue','Aprobado':'badge-green','Rechazado':'badge-red'};
+  return `<span class="badge ${m[e]||'badge-gray'}">${e}</span>`;
+}
+
+/* ── NAVEGACIÓN ── */
+function navigate(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  el.classList.add('active');
+  if(page==='dashboard')updateDashboard();
+  if(page==='clientes')renderClientes('');
+  if(page==='agentes')renderAgentes('');
+  if(page==='polizas')renderPolizas('');
+  if(page==='siniestros')renderSiniestros('');
+}
+
+/* ── DASHBOARD ── */
+function updateDashboard(){
+  document.getElementById('stat-clientes').textContent=clientes.length;
+  document.getElementById('stat-agentes').textContent=agentes.length;
+  document.getElementById('stat-polizas').textContent=polizas.filter(p=>p.estado==='Vigente').length;
+  document.getElementById('stat-siniestros').textContent=siniestros.filter(s=>s.estado==='Pendiente'||s.estado==='En Proceso').length;
+}
+
+/* ── CATÁLOGO ── */
+function switchTab(id, el){
+  ['vida','auto','gm','hogar'].forEach(t=>{
+    document.getElementById('cat-'+t).style.display='none';
+  });
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('cat-'+id).style.display='grid';
+  el.classList.add('active');
+}
+
+let _cotizarTipo='', _cotizarPrima='';
+function cotizarPlan(tipo, prima){
+  _cotizarTipo = tipo;
+  _cotizarPrima = prima;
+  document.getElementById('cotizar-title').textContent = `Asignar Póliza — ${tipo} ${prima}/mes`;
+  document.getElementById('cotizar-search').value = '';
+  renderCotizarLista(clientes);
+  openModal('modal-cotizar');
+}
+function filterCotizarClientes(q){
+  renderCotizarLista(clientes.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())));
+}
+function renderCotizarLista(lista){
+  const el = document.getElementById('cotizar-lista');
+  if(!lista.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px">No se encontraron clientes</div>';
+    return;
+  }
+  el.innerHTML = lista.map(c=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f1f5f9;cursor:pointer" onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background=''">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#1e293b">${c.nombre}</div>
+        <div style="font-size:11px;color:#94a3b8">${c.rfc} · ${c.email}</div>
+      </div>
+      <button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="asignarPolizaDesdeCategoria('${c.nombre.replace(/'/g,"\\'")}')">Seleccionar</button>
+    </div>`).join('');
+}
+function asignarPolizaDesdeCategoria(nombreCliente){
+  closeModal('modal-cotizar');
+  abrirNuevaPolizaConDatos(nombreCliente, _cotizarTipo, _cotizarPrima);
+}
+
+/* ── CLIENTES ── */
+function renderClientes(q){
+  const f=clientes.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())||c.rfc.toLowerCase().includes(q.toLowerCase()));
+  const tb=document.getElementById('tb-clientes'),em=document.getElementById('empty-clientes');
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=f.map(c=>`<tr>
+    <td class="td-id">#${c.id}</td>
+    <td><strong>${c.nombre}</strong></td>
+    <td>${c.rfc}</td>
+    <td>${c.telefono}</td>
+    <td>${c.email}</td>
+    <td><div class="td-actions">
+      <button class="icon-btn icon-btn-view" onclick="verCliente(${c.id})" title="Ver detalle">👁️</button>
+      <button class="icon-btn icon-btn-edit" onclick="editCliente(${c.id})" title="Editar">✏️</button>
+      <button class="icon-btn icon-btn-delete" onclick="confirmDelete('cliente',${c.id},'${c.nombre.replace(/'/g,"\\'")}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+  document.getElementById('count-clientes').textContent=q?`Mostrando ${f.length} de ${clientes.length} clientes`:'';
+}
+function openClienteForm(){
+  document.getElementById('c-id').value='';
+  ['c-nombre','c-rfc','c-telefono','c-email','c-direccion'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cliente-modal-title').textContent='Registrar Nuevo Cliente';
+  document.getElementById('cliente-submit-btn').textContent='Guardar Cliente';
+  openModal('modal-cliente');
+}
+function editCliente(id){
+  const c=clientes.find(x=>x.id===id);
+  document.getElementById('c-id').value=c.id;
+  document.getElementById('c-nombre').value=c.nombre;
+  document.getElementById('c-rfc').value=c.rfc;
+  document.getElementById('c-telefono').value=c.telefono;
+  document.getElementById('c-email').value=c.email;
+  document.getElementById('c-direccion').value=c.direccion||'';
+  document.getElementById('cliente-modal-title').textContent='Editar Cliente';
+  document.getElementById('cliente-submit-btn').textContent='Actualizar Cliente';
+  openModal('modal-cliente');
+}
+function saveCliente(e){
+  e.preventDefault();
+  const id=document.getElementById('c-id').value;
+  const data={nombre:document.getElementById('c-nombre').value.trim(),rfc:document.getElementById('c-rfc').value.trim(),telefono:document.getElementById('c-telefono').value.trim(),email:document.getElementById('c-email').value.trim(),direccion:document.getElementById('c-direccion').value.trim()};
+  if(id){const i=clientes.findIndex(x=>x.id==id);clientes[i]={...clientes[i],...data};}
+  else clientes.push({id:nextId(clientes),...data});
+  save('seg_clientes',clientes);closeModal('modal-cliente');renderClientes('');updateDashboard();
+}
+function verCliente(id){
+  const c=clientes.find(x=>x.id===id);
+  const polizasCliente = polizas.filter(p=>p.cliente===c.nombre);
+  document.getElementById('ver-cliente-content').innerHTML=`
+    <div class="view-field"><label>ID</label><div class="view-value">#${c.id}</div></div>
+    <div class="view-field"><label>RFC</label><div class="view-value">${c.rfc}</div></div>
+    <div class="view-field full"><label>Nombre</label><div class="view-value">${c.nombre}</div></div>
+    <div class="view-field"><label>Teléfono</label><div class="view-value">${c.telefono}</div></div>
+    <div class="view-field"><label>Email</label><div class="view-value">${c.email}</div></div>
+    <div class="view-field full"><label>Dirección</label><div class="view-value">${c.direccion||'—'}</div></div>
+    <div class="view-field full"><label>Pólizas activas (${polizasCliente.length})</label><div class="view-value">${polizasCliente.length?polizasCliente.map(p=>`<span class="badge badge-blue" style="margin-right:4px">${p.numero} · ${p.tipo}</span>`).join(''):'Sin pólizas'}</div></div>`;
+  document.getElementById('btn-nueva-poliza-cliente').onclick = ()=>{
+    closeModal('modal-ver-cliente');
+    abrirNuevaPolizaConDatos(c.nombre,'','');
+  };
+  openModal('modal-ver-cliente');
+}
+
+/* ── AGENTES ── */
+function renderAgentes(q){
+  const f=agentes.filter(a=>a.nombre.toLowerCase().includes(q.toLowerCase())||a.codigo.toLowerCase().includes(q.toLowerCase()));
+  const tb=document.getElementById('tb-agentes'),em=document.getElementById('empty-agentes');
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=f.map(a=>`<tr>
+    <td class="td-id">${a.codigo}</td>
+    <td><strong>${a.nombre}</strong></td>
+    <td>${a.zona}</td>
+    <td>${a.telefono}</td>
+    <td style="color:#16a34a;font-weight:600">${a.comision}</td>
+    <td>${a.clientes}</td>
+    <td><div class="td-actions">
+      <button class="icon-btn icon-btn-edit" onclick="editAgente(${a.id})" title="Editar">✏️</button>
+      <button class="icon-btn icon-btn-delete" onclick="confirmDelete('agente',${a.id},'${a.nombre.replace(/'/g,"\\'")}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+  document.getElementById('count-agentes').textContent=q?`Mostrando ${f.length} de ${agentes.length} agentes`:'';
+}
+function openAgenteForm(){
+  document.getElementById('a-id').value='';
+  ['a-nombre','a-codigo','a-telefono','a-email','a-zona','a-comision'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('agente-modal-title').textContent='Registrar Nuevo Agente';
+  document.getElementById('agente-submit-btn').textContent='Guardar Agente';
+  openModal('modal-agente');
+}
+function editAgente(id){
+  const a=agentes.find(x=>x.id===id);
+  document.getElementById('a-id').value=a.id;
+  document.getElementById('a-nombre').value=a.nombre;
+  document.getElementById('a-codigo').value=a.codigo;
+  document.getElementById('a-telefono').value=a.telefono;
+  document.getElementById('a-email').value=a.email;
+  document.getElementById('a-zona').value=a.zona;
+  document.getElementById('a-comision').value=a.comision;
+  document.getElementById('agente-modal-title').textContent='Editar Agente';
+  document.getElementById('agente-submit-btn').textContent='Actualizar Agente';
+  openModal('modal-agente');
+}
+function saveAgente(e){
+  e.preventDefault();
+  const id=document.getElementById('a-id').value;
+  const data={nombre:document.getElementById('a-nombre').value.trim(),codigo:document.getElementById('a-codigo').value.trim(),telefono:document.getElementById('a-telefono').value.trim(),email:document.getElementById('a-email').value.trim(),zona:document.getElementById('a-zona').value.trim(),comision:document.getElementById('a-comision').value.trim()};
+  if(id){const i=agentes.findIndex(x=>x.id==id);agentes[i]={...agentes[i],...data};}
+  else agentes.push({id:nextId(agentes),clientes:0,...data});
+  save('seg_agentes',agentes);closeModal('modal-agente');renderAgentes('');updateDashboard();
+}
+
+/* ── PÓLIZAS ── */
+function renderPolizas(q){
+  const f=polizas.filter(p=>p.numero.toLowerCase().includes(q.toLowerCase())||p.cliente.toLowerCase().includes(q.toLowerCase()));
+  const tb=document.getElementById('tb-polizas'),em=document.getElementById('empty-polizas');
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=f.map(p=>`<tr>
+    <td class="td-id">${p.numero}</td>
+    <td>${p.cliente}</td>
+    <td>${p.tipo}</td>
+    <td>${p.inicio}</td>
+    <td>${p.fin}</td>
+    <td style="font-weight:600">${p.prima}</td>
+    <td>${badge(p.estado)}</td>
+    <td><div class="td-actions">
+      <button class="icon-btn icon-btn-view" onclick="verPoliza(${p.id})" title="Ver detalle">👁️</button>
+      <button class="icon-btn icon-btn-edit" onclick="editPoliza(${p.id})" title="Editar">✏️</button>
+      <button class="icon-btn icon-btn-delete" onclick="confirmDelete('poliza',${p.id},'${p.numero}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+  document.getElementById('count-polizas').textContent=q?`Mostrando ${f.length} de ${polizas.length} pólizas`:'';
+}
+function verPoliza(id){
+  const p=polizas.find(x=>x.id===id);
+  document.getElementById('ver-poliza-content').innerHTML=`
+    <div class="view-field"><label>Número</label><div class="view-value">${p.numero}</div></div>
+    <div class="view-field"><label>Estado</label><div class="view-value">${badge(p.estado)}</div></div>
+    <div class="view-field full"><label>Cliente</label><div class="view-value">${p.cliente}</div></div>
+    <div class="view-field"><label>Tipo de Seguro</label><div class="view-value">${p.tipo}</div></div>
+    <div class="view-field"><label>Prima Mensual</label><div class="view-value" style="font-weight:700;color:#2563eb">${p.prima}</div></div>
+    <div class="view-field"><label>Vigencia Inicio</label><div class="view-value">${p.inicio}</div></div>
+    <div class="view-field"><label>Vigencia Fin</label><div class="view-value">${p.fin}</div></div>`;
+  document.getElementById('btn-nueva-poliza-desde-vista').onclick = ()=>{
+    closeModal('modal-ver-poliza');
+    abrirNuevaPolizaConDatos(p.cliente,'','');
+  };
+  openModal('modal-ver-poliza');
+}
+function openPolizaForm(){
+  document.getElementById('p-id').value='';
+  ['p-numero','p-cliente','p-prima','p-inicio','p-fin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-tipo').value='';
+  document.getElementById('p-estado').value='Vigente';
+  document.getElementById('poliza-modal-title').textContent='Registrar Nueva Póliza';
+  document.getElementById('poliza-submit-btn').textContent='Guardar Póliza';
+  openModal('modal-poliza');
+}
+function abrirNuevaPolizaConDatos(cliente, tipo, prima){
+  document.getElementById('p-id').value='';
+  const hoy=new Date(),fin=new Date(hoy);fin.setFullYear(fin.getFullYear()+1);
+  const fmt=d=>d.toISOString().split('T')[0];
+  document.getElementById('p-numero').value='POL-'+new Date().getFullYear()+'-'+String(nextId(polizas)).padStart(4,'0');
+  document.getElementById('p-cliente').value=cliente;
+  document.getElementById('p-tipo').value=tipo||'';
+  document.getElementById('p-prima').value=prima||'';
+  document.getElementById('p-inicio').value=fmt(hoy);
+  document.getElementById('p-fin').value=fmt(fin);
+  document.getElementById('p-estado').value='Vigente';
+  document.getElementById('poliza-modal-title').textContent='Nueva Póliza — '+cliente;
+  document.getElementById('poliza-submit-btn').textContent='Guardar Póliza';
+  openModal('modal-poliza');
+}
+function editPoliza(id){
+  const p=polizas.find(x=>x.id===id);
+  document.getElementById('p-id').value=p.id;
+  document.getElementById('p-numero').value=p.numero;
+  document.getElementById('p-cliente').value=p.cliente;
+  document.getElementById('p-tipo').value=p.tipo;
+  document.getElementById('p-prima').value=p.prima;
+  document.getElementById('p-inicio').value=p.inicio;
+  document.getElementById('p-fin').value=p.fin;
+  document.getElementById('p-estado').value=p.estado;
+  document.getElementById('poliza-modal-title').textContent='Editar Póliza';
+  document.getElementById('poliza-submit-btn').textContent='Actualizar Póliza';
+  openModal('modal-poliza');
+}
+function savePoliza(e){
+  e.preventDefault();
+  const id=document.getElementById('p-id').value;
+  const data={numero:document.getElementById('p-numero').value.trim(),cliente:document.getElementById('p-cliente').value.trim(),tipo:document.getElementById('p-tipo').value,prima:document.getElementById('p-prima').value.trim(),inicio:document.getElementById('p-inicio').value,fin:document.getElementById('p-fin').value,estado:document.getElementById('p-estado').value};
+  if(id){const i=polizas.findIndex(x=>x.id==id);polizas[i]={...polizas[i],...data};}
+  else polizas.push({id:nextId(polizas),...data});
+  save('seg_polizas',polizas);closeModal('modal-poliza');renderPolizas('');updateDashboard();
+}
+
+/* ── SINIESTROS ── */
+function renderSiniestros(q){
+  const f=siniestros.filter(s=>s.numero.toLowerCase().includes(q.toLowerCase())||s.cliente.toLowerCase().includes(q.toLowerCase())||s.poliza.toLowerCase().includes(q.toLowerCase()));
+  const tb=document.getElementById('tb-siniestros'),em=document.getElementById('empty-siniestros');
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=f.map(s=>`<tr>
+    <td class="td-id">${s.numero}</td>
+    <td>${s.poliza}</td>
+    <td>${s.cliente}</td>
+    <td>${s.tipo}</td>
+    <td>${s.fecha}</td>
+    <td style="font-weight:600">${s.monto}</td>
+    <td>${badge(s.estado)}</td>
+    <td><div class="td-actions">
+      <button class="icon-btn icon-btn-edit" onclick="editSiniestro(${s.id})" title="Editar">✏️</button>
+      <button class="icon-btn icon-btn-delete" onclick="confirmDelete('siniestro',${s.id},'${s.numero}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+  document.getElementById('count-siniestros').textContent=q?`Mostrando ${f.length} de ${siniestros.length} siniestros`:'';
+}
+function openSiniestroForm(){
+  document.getElementById('s-id').value='';
+  ['s-numero','s-poliza','s-cliente','s-fecha','s-monto'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('s-tipo').value='';
+  document.getElementById('s-estado').value='Pendiente';
+  document.getElementById('siniestro-modal-title').textContent='Registrar Nuevo Siniestro';
+  document.getElementById('siniestro-submit-btn').textContent='Guardar Siniestro';
+  openModal('modal-siniestro');
+}
+function editSiniestro(id){
+  const s=siniestros.find(x=>x.id===id);
+  document.getElementById('s-id').value=s.id;
+  document.getElementById('s-numero').value=s.numero;
+  document.getElementById('s-poliza').value=s.poliza;
+  document.getElementById('s-cliente').value=s.cliente;
+  document.getElementById('s-fecha').value=s.fecha;
+  document.getElementById('s-tipo').value=s.tipo;
+  document.getElementById('s-monto').value=s.monto;
+  document.getElementById('s-estado').value=s.estado;
+  document.getElementById('siniestro-modal-title').textContent='Editar Siniestro';
+  document.getElementById('siniestro-submit-btn').textContent='Actualizar Siniestro';
+  openModal('modal-siniestro');
+}
+function saveSiniestro(e){
+  e.preventDefault();
+  const id=document.getElementById('s-id').value;
+  const data={numero:document.getElementById('s-numero').value.trim(),poliza:document.getElementById('s-poliza').value.trim(),cliente:document.getElementById('s-cliente').value.trim(),fecha:document.getElementById('s-fecha').value,tipo:document.getElementById('s-tipo').value,monto:document.getElementById('s-monto').value.trim(),estado:document.getElementById('s-estado').value};
+  if(id){const i=siniestros.findIndex(x=>x.id==id);siniestros[i]={...siniestros[i],...data};}
+  else siniestros.push({id:nextId(siniestros),...data});
+  save('seg_siniestros',siniestros);closeModal('modal-siniestro');renderSiniestros('');updateDashboard();
+}
+
+/* ── ELIMINAR ── */
+let _del=null;
+function confirmDelete(entity,id,name){
+  _del={entity,id};
+  document.getElementById('delete-name-display').textContent=name;
+  openModal('modal-delete');
+}
+document.getElementById('delete-confirm-btn').addEventListener('click',function(){
+  if(!_del)return;
+  const{entity,id}=_del;
+  if(entity==='cliente'){clientes=clientes.filter(x=>x.id!==id);save('seg_clientes',clientes);renderClientes('');}
+  if(entity==='agente'){agentes=agentes.filter(x=>x.id!==id);save('seg_agentes',agentes);renderAgentes('');}
+  if(entity==='poliza'){polizas=polizas.filter(x=>x.id!==id);save('seg_polizas',polizas);renderPolizas('');}
+  if(entity==='siniestro'){siniestros=siniestros.filter(x=>x.id!==id);save('seg_siniestros',siniestros);renderSiniestros('');}
+  updateDashboard();closeModal('modal-delete');_del=null;
+});
+
+updateDashboard();
+</script>
+</body>
+</html>
